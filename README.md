@@ -6,3 +6,6 @@ This is the implementation of Greedy error-bounded PLR in C++. The PLR is implem
 > Representation for online stream approximation. The VLDB Journal 23, 6 (December 2014), 915–937.
 > DOI: https://doi.org/10.1007/s00778-014-0355-0
 
+This implementation is derived from the rust implementation:
+
+> https://github.com/RyanMarcus/plr/tree/master
