@@ -41,7 +41,9 @@ struct Line {
     }
 
     // Get the intersection pt within two lines
+    // REQUIRED: Two lines should not have the same slope
     Point<T> getIntersection(Line<T> anotherLine) {
+        assert(this->a1 - anotherLine.a1 >= 0.005);
         return Point<T>((anotherLine.a2 - this->a2) / (this->a1 - anotherLine.a1),
                         (this->a1 * anotherLine.a2 - anotherLine.a1 * this->a2) / (this->a1 - anotherLine.a1));
     }
@@ -60,7 +62,7 @@ struct Line {
 // Represent a segment in PLR model
 template<typename N, typename D>
 struct Segment {
-    static Segment<N,D> NO_VALID_SEGMENT {0,0,0};
+    static Segment<N,D> NO_VALID_SEGMENT;
     static_assert(std::is_floating_point<D>(), "Floating point should be placed in second placement,");
     static_assert(std::is_integral<N>(), "Integer should be placed in first placement.");
 
@@ -68,6 +70,9 @@ struct Segment {
     D slope;
     D y; // The intersection pt y
 };
+
+template<typename N, typename D>
+Segment<N,D> Segment<N,D>::NO_VALID_SEGMENT = {0, 0, 0};
 
 enum GREEDY_PLR_STATE {
     NEED_2_PT = 0,
@@ -86,7 +91,7 @@ public:
 
     // Process a point
     // REQUIRED: The PLR Model is not at the finishing state
-    Segment<N, D> process(Point<D> &pt) {
+    Segment<N, D> process(Point<double> pt) {
         assert(state != GREEDY_PLR_STATE::FINISHED);
         last_pt = pt;
         switch (state) {
@@ -101,6 +106,8 @@ public:
                 break;
             case GREEDY_PLR_STATE::READY:
                 return process_(pt);
+            default:
+                assert(false); // non-reachable code, suppress warning
         }
         return Segment<N,D>::NO_VALID_SEGMENT;
     }
@@ -117,6 +124,8 @@ public:
                 return Segment<N,D>(s0->x,0,s0->y);
             case GREEDY_PLR_STATE::READY:
                 return current_segment();
+            default:
+                assert(false); // Unreachable code, suppress warning
         }
         // Unreachable state, no sure whether compiler require this
         return Segment<N,D>::NO_VALID_SEGMENT;
@@ -142,7 +151,7 @@ private:
         N segment_start = s0.x;
         D avg_slope = (rho_upper.a1 + rho_lower.a2) / 2;
         D intercept = -avg_slope * pt_intersection_.x + pt_intersection_.y;
-        return Segment<N, D>(segment_start, avg_slope, intercept);
+        return Segment<N, D> {segment_start, avg_slope, intercept};
     }
 
     Segment<N, D> process_(Point<D> pt) {
@@ -165,5 +174,6 @@ private:
         return Segment<N,D>::NO_VALID_SEGMENT;
     }
 };
+
 
 #endif //PLR_LIBRARY_H
