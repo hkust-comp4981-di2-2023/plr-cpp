@@ -1,7 +1,10 @@
 #include <concepts>
 #include <cassert>
+
 #ifndef PLR_LIBRARY_H
 #define PLR_LIBRARY_H
+
+const double DELTA = 0.005;
 
 // Represent a Point in a 2-D plane
 template<typename T>
@@ -43,7 +46,7 @@ struct Line {
     // Get the intersection pt within two lines
     // REQUIRED: Two lines should not have the same slope
     Point<T> getIntersection(Line<T> anotherLine) {
-        assert(this->a1 - anotherLine.a1 >= 0.005);
+        assert(!(this->a1 == anotherLine.a1));
         return Point<T>((anotherLine.a2 - this->a2) / (this->a1 - anotherLine.a1),
                         (this->a1 * anotherLine.a2 - anotherLine.a1 * this->a2) / (this->a1 - anotherLine.a1));
     }
@@ -62,17 +65,32 @@ struct Line {
 // Represent a segment in PLR model
 template<typename N, typename D>
 struct Segment {
-    static Segment<N,D> NO_VALID_SEGMENT;
+    static Segment<N, D> NO_VALID_SEGMENT;
     static_assert(std::is_floating_point<D>(), "Floating point should be placed in second placement,");
     static_assert(std::is_integral<N>(), "Integer should be placed in first placement.");
 
-    N x; // The intersection pt x (since we can translate this pt exactly)
+    N x_start; // The intersection pt x (since we can translate this pt exactly)
+    N x_end;
     D slope;
     D y; // The intersection pt y
+    bool operator==(const Segment<N, D> &another) {
+        return (this->x_start == another.x_start) && abs(this->slope - another.slope) < DELTA &&
+               abs(this->y - another.y) < DELTA && (this->x_end == another.x_end);
+    }
+
+    bool operator!=(const Segment<N, D> &another) {
+        return !this->operator==(another);
+    }
+
+    Segment() = default;
+
+    Segment(const Segment<N, D> &) = default;
+
+    Segment(N x_start, N x_end, D slope, D y) : x_start(x_start),x_end(x_end) ,slope(slope), y(y) {}
 };
 
 template<typename N, typename D>
-Segment<N,D> Segment<N,D>::NO_VALID_SEGMENT = {0, 0, 0};
+Segment<N, D> Segment<N, D>::NO_VALID_SEGMENT = {0, 0, 0, 0};
 
 enum GREEDY_PLR_STATE {
     NEED_2_PT = 0,
@@ -109,26 +127,28 @@ public:
             default:
                 assert(false); // non-reachable code, suppress warning
         }
-        return Segment<N,D>::NO_VALID_SEGMENT;
+        return Segment<N, D>::NO_VALID_SEGMENT;
     }
 
     // Finish the PLR Model
     // REQUIRED: Has not been called finish()
-    Segment<N,D> finish() {
+    Segment<N, D> finish() {
         assert(state != GREEDY_PLR_STATE::FINISHED);
-        state = GREEDY_PLR_STATE::FINISHED;
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
-                return Segment<N,D>::NO_VALID_SEGMENT;
+                state = GREEDY_PLR_STATE::FINISHED;
+                return Segment<N, D>::NO_VALID_SEGMENT;
             case GREEDY_PLR_STATE::NEED_1_PT:
-                return Segment<N,D>(s0->x,0,s0->y);
+                state = GREEDY_PLR_STATE::FINISHED;
+                return Segment<N, D>{static_cast<N>(s0.x), static_cast<N>(s0.x) + 1, 0, s0.y};
             case GREEDY_PLR_STATE::READY:
+                state = GREEDY_PLR_STATE::FINISHED;
                 return current_segment();
             default:
                 assert(false); // Unreachable code, suppress warning
         }
         // Unreachable state, no sure whether compiler require this
-        return Segment<N,D>::NO_VALID_SEGMENT;
+        return Segment<N, D>::NO_VALID_SEGMENT;
     }
 
 private:
@@ -149,13 +169,14 @@ private:
 
     Segment<N, D> current_segment() {
         N segment_start = s0.x;
-        D avg_slope = (rho_upper.a1 + rho_lower.a2) / 2;
+        N segment_stop = last_pt.x;
+        D avg_slope = (rho_upper.a1 + rho_lower.a1) / 2;
         D intercept = -avg_slope * pt_intersection_.x + pt_intersection_.y;
-        return Segment<N, D> {segment_start, avg_slope, intercept};
+        return Segment<N, D>{segment_start,segment_stop, avg_slope, intercept};
     }
 
     Segment<N, D> process_(Point<D> pt) {
-        if (!rho_lower.above(pt) && !rho_upper.below(pt)) {
+        if (!(rho_lower.above(pt) && rho_upper.below(pt))) {
             auto prev_segment = current_segment();
             s0 = pt;
             state = GREEDY_PLR_STATE::NEED_1_PT;
@@ -171,7 +192,7 @@ private:
             rho_lower = Line<D>(pt_intersection_, s_lower);
         }
 
-        return Segment<N,D>::NO_VALID_SEGMENT;
+        return Segment<N, D>::NO_VALID_SEGMENT;
     }
 };
 
