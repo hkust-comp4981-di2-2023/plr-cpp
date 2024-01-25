@@ -10,6 +10,8 @@
 
 const double DELTA = 0.005;
 
+// A utility function for encoding any value to string
+// Encoding scheme will be memcpy()
 template<typename T>
 std::string to_string(T value) {
     const size_t value_size = sizeof(value) / sizeof(char);
@@ -18,18 +20,20 @@ std::string to_string(T value) {
         T value;
     } obj;
     obj.value = value;
-    return std::string {std::begin(obj.buffer), std::end(obj.buffer)};
+    return std::string{std::begin(obj.buffer), std::end(obj.buffer)};
 }
 
+// A utility function for decoding any value from string
+// Encoding scheme will be memcpy()
 template<typename T>
 T to_type(std::string str) {
     const size_t value_size = sizeof(T) / sizeof(char);
-    union {3
+    union {
         char buffer[value_size];
         T value;
     } obj;
     size_t count = 0;
-    for (auto i = std::begin(str);i != std::end(str);i++) {
+    for (auto i = std::begin(str); i != std::end(str); i++) {
         obj.buffer[count++] = *(i);
     }
     return obj.value;
@@ -225,7 +229,11 @@ private:
     }
 };
 
-
+// A class which represents a trained PLR Model Data
+// It can be constructed in two ways
+// 1. By converting constructor from gamma (error bound)
+// 2. By converting constructor from an encoded string
+// REQUIRED: String must be encoded from Encode() function.
 template<typename N, typename D>
 class PLRDataRep {
 public:
@@ -236,7 +244,9 @@ public:
         size_t sizeN = sizeof(N);
         size_t sizeD = sizeof(D);
 
-        assert(encoded_str.size() % elementSize == 0);
+        assert(encoded_str.size() % elementSize == sizeD);
+        this->gamma_ = to_type<D>(encoded_str.substr(ptr, sizeD));
+        ptr += sizeD;
         for (int i = 0; i < count; i++) {
             auto n1 = encoded_str.substr(ptr, sizeN);
             ptr += sizeN;
@@ -251,24 +261,27 @@ public:
     }
 
     std::string Encode() {
-        std::string res{};
+        std::stringstream ss;
+        ss << to_string<D>(gamma_);
         for (auto i: segments_) {
             N n1 = i.x_start;
             N n2 = i.x_end;
             D d1 = i.slope;
             D d2 = i.y;
-            res += to_string(n1);
-            res += to_string(n2);
-            res += to_string(d1);
-            res += to_string(d2);
+            ss << to_string(n1);
+            ss << to_string(n2);
+            ss << to_string(d1);
+            ss << to_string(d2);
         }
         segments_.clear();
-        return res;
+        return ss.str();
     }
 
-    PLRDataRep() = default;
+    PLRDataRep() = delete;
 
-    void Add(Segment<N,D> seg) {
+    PLRDataRep(D gamma) : gamma_(gamma), segments_() {}
+
+    void Add(Segment<N, D> seg) {
         segments_.push_back(seg);
     }
 
@@ -277,13 +290,39 @@ public:
         Decode(encoded_str);
     }
 
-    const std::vector<Segment<N,D>> getSegs() const {
+    D GetGamma() const {
+        return gamma_;
+    }
+
+    std::vector<Segment<N, D>> GetSegs() const {
         return segments_;
+    }
+
+    std::pair<D,D> GetValue(N key) {
+        if (segments_.empty()) {
+            return std::pair<D,D>();
+        }
+        auto res = binary_search(0, segments_.size()-1, key);
+        D tar = res.slope * key + res.y;
+        return std::pair<D,D>(tar, gamma_);
     }
 
 private:
     std::vector<Segment<N, D>> segments_;
-
+    D gamma_;
+    const Segment<N,D> binary_search(size_t first, size_t last, N target) {
+        if (last <= first) {
+            return segments_[first];
+        }
+        size_t mid = first + (last - first) /2;
+        if (segments_[mid].x_start == target) {
+            return segments_[mid];
+        }
+        if (segments_[mid].x_start > target) {
+            return binary_search(first, mid-1, target);
+        }
+        return binary_search(mid+1 , last, target);
+    }
 };
 
 
