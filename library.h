@@ -1,10 +1,39 @@
 #include <concepts>
 #include <cassert>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <sstream>
 
 #ifndef PLR_LIBRARY_H
 #define PLR_LIBRARY_H
 
 const double DELTA = 0.005;
+
+template<typename T>
+std::string to_string(T value) {
+    const size_t value_size = sizeof(value) / sizeof(char);
+    union {
+        char buffer[value_size];
+        T value;
+    } obj;
+    obj.value = value;
+    return std::string {std::begin(obj.buffer), std::end(obj.buffer)};
+}
+
+template<typename T>
+T to_type(std::string str) {
+    const size_t value_size = sizeof(T) / sizeof(char);
+    union {3
+        char buffer[value_size];
+        T value;
+    } obj;
+    size_t count = 0;
+    for (auto i = std::begin(str);i != std::end(str);i++) {
+        obj.buffer[count++] = *(i);
+    }
+    return obj.value;
+}
 
 // Represent a Point in a 2-D plane
 template<typename T>
@@ -64,7 +93,7 @@ struct Line {
 
 // Represent a segment in PLR model
 template<typename N, typename D>
-struct Segment {
+struct __attribute__((packed)) Segment {
     static Segment<N, D> NO_VALID_SEGMENT;
     static_assert(std::is_floating_point<D>(), "Floating point should be placed in second placement,");
     static_assert(std::is_integral<N>(), "Integer should be placed in first placement.");
@@ -86,7 +115,7 @@ struct Segment {
 
     Segment(const Segment<N, D> &) = default;
 
-    Segment(N x_start, N x_end, D slope, D y) : x_start(x_start),x_end(x_end) ,slope(slope), y(y) {}
+    Segment(N x_start, N x_end, D slope, D y) : x_start(x_start), x_end(x_end), slope(slope), y(y) {}
 };
 
 template<typename N, typename D>
@@ -172,7 +201,7 @@ private:
         N segment_stop = last_pt.x;
         D avg_slope = (rho_upper.a1 + rho_lower.a1) / 2;
         D intercept = -avg_slope * pt_intersection_.x + pt_intersection_.y;
-        return Segment<N, D>{segment_start,segment_stop, avg_slope, intercept};
+        return Segment<N, D>{segment_start, segment_stop, avg_slope, intercept};
     }
 
     Segment<N, D> process_(Point<D> pt) {
@@ -194,6 +223,67 @@ private:
 
         return Segment<N, D>::NO_VALID_SEGMENT;
     }
+};
+
+
+template<typename N, typename D>
+class PLRDataRep {
+public:
+    void Decode(std::string encoded_str) {
+        const size_t elementSize = sizeof(Segment<N, D>);
+        size_t count = encoded_str.size() / elementSize;
+        size_t ptr = 0;
+        size_t sizeN = sizeof(N);
+        size_t sizeD = sizeof(D);
+
+        assert(encoded_str.size() % elementSize == 0);
+        for (int i = 0; i < count; i++) {
+            auto n1 = encoded_str.substr(ptr, sizeN);
+            ptr += sizeN;
+            auto n2 = encoded_str.substr(ptr, sizeN);
+            ptr += sizeN;
+            auto d1 = encoded_str.substr(ptr, sizeD);
+            ptr += sizeD;
+            auto d2 = encoded_str.substr(ptr, sizeD);
+            ptr += sizeD;
+            segments_.push_back(Segment<N, D>(to_type<N>(n1), to_type<N>(n2), to_type<D>(d1), to_type<D>(d2)));
+        }
+    }
+
+    std::string Encode() {
+        std::string res{};
+        for (auto i: segments_) {
+            N n1 = i.x_start;
+            N n2 = i.x_end;
+            D d1 = i.slope;
+            D d2 = i.y;
+            res += to_string(n1);
+            res += to_string(n2);
+            res += to_string(d1);
+            res += to_string(d2);
+        }
+        segments_.clear();
+        return res;
+    }
+
+    PLRDataRep() = default;
+
+    void Add(Segment<N,D> seg) {
+        segments_.push_back(seg);
+    }
+
+
+    PLRDataRep(std::string encoded_str) {
+        Decode(encoded_str);
+    }
+
+    const std::vector<Segment<N,D>> getSegs() const {
+        return segments_;
+    }
+
+private:
+    std::vector<Segment<N, D>> segments_;
+
 };
 
 
