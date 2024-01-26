@@ -58,9 +58,9 @@ int main() {
     ofstream plr_data;
     cwd = std::filesystem::current_path() / "plr_data.csv";
     plr_data.open(cwd.string());
-    plr_data << "x_start,x_end,slope,y" << endl;
+    plr_data << "x_start,slope,y" << endl;
     for (int i = 0; i < seg.size();i++) {
-        plr_data << seg[i].x_start << "," <<seg[i].x_end << "," << seg[i].slope << "," << seg[i].y << endl;
+        plr_data << seg[i].x_start << "," << seg[i].slope << "," << seg[i].y << endl;
     }
     plr_data.close();
     return 0;

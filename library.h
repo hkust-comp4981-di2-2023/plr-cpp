@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <algorithm>
 #include <sstream>
 
 #ifndef PLR_LIBRARY_H
@@ -103,12 +104,11 @@ struct __attribute__((packed)) Segment {
     static_assert(std::is_integral<N>(), "Integer should be placed in first placement.");
 
     N x_start; // The intersection pt x (since we can translate this pt exactly)
-    N x_end;
     D slope;
     D y; // The intersection pt y
     bool operator==(const Segment<N, D> &another) {
         return (this->x_start == another.x_start) && abs(this->slope - another.slope) < DELTA &&
-               abs(this->y - another.y) < DELTA && (this->x_end == another.x_end);
+               abs(this->y - another.y) < DELTA;
     }
 
     bool operator!=(const Segment<N, D> &another) {
@@ -119,11 +119,11 @@ struct __attribute__((packed)) Segment {
 
     Segment(const Segment<N, D> &) = default;
 
-    Segment(N x_start, N x_end, D slope, D y) : x_start(x_start), x_end(x_end), slope(slope), y(y) {}
+    Segment(N x_start, D slope, D y) : x_start(x_start), slope(slope), y(y) {}
 };
 
 template<typename N, typename D>
-Segment<N, D> Segment<N, D>::NO_VALID_SEGMENT = {0, 0, 0, 0};
+Segment<N, D> Segment<N, D>::NO_VALID_SEGMENT = {0, 0, 0};
 
 enum GREEDY_PLR_STATE {
     NEED_2_PT = 0,
@@ -173,7 +173,7 @@ public:
                 return Segment<N, D>::NO_VALID_SEGMENT;
             case GREEDY_PLR_STATE::NEED_1_PT:
                 state = GREEDY_PLR_STATE::FINISHED;
-                return Segment<N, D>{static_cast<N>(s0.x), static_cast<N>(s0.x) + 1, 0, s0.y};
+                return Segment<N, D>{static_cast<N>(s0.x), 0, s0.y};
             case GREEDY_PLR_STATE::READY:
                 state = GREEDY_PLR_STATE::FINISHED;
                 return current_segment();
@@ -202,10 +202,9 @@ private:
 
     Segment<N, D> current_segment() {
         N segment_start = s0.x;
-        N segment_stop = last_pt.x;
         D avg_slope = (rho_upper.a1 + rho_lower.a1) / 2;
         D intercept = -avg_slope * pt_intersection_.x + pt_intersection_.y;
-        return Segment<N, D>{segment_start, segment_stop, avg_slope, intercept};
+        return Segment<N, D>{segment_start, avg_slope, intercept};
     }
 
     Segment<N, D> process_(Point<D> pt) {
@@ -237,7 +236,7 @@ private:
 template<typename N, typename D>
 class PLRDataRep {
 public:
-    void Decode(std::string encoded_str) {
+    void Decode(const std::string &encoded_str) {
         const size_t elementSize = sizeof(Segment<N, D>);
         size_t count = encoded_str.size() / elementSize;
         size_t ptr = 0;
@@ -250,13 +249,11 @@ public:
         for (int i = 0; i < count; i++) {
             auto n1 = encoded_str.substr(ptr, sizeN);
             ptr += sizeN;
-            auto n2 = encoded_str.substr(ptr, sizeN);
-            ptr += sizeN;
             auto d1 = encoded_str.substr(ptr, sizeD);
             ptr += sizeD;
             auto d2 = encoded_str.substr(ptr, sizeD);
             ptr += sizeD;
-            segments_.push_back(Segment<N, D>(to_type<N>(n1), to_type<N>(n2), to_type<D>(d1), to_type<D>(d2)));
+            segments_.push_back(Segment<N, D>(to_type<N>(n1), to_type<D>(d1), to_type<D>(d2)));
         }
     }
 
@@ -265,21 +262,21 @@ public:
         ss << to_string<D>(gamma_);
         for (auto i: segments_) {
             N n1 = i.x_start;
-            N n2 = i.x_end;
             D d1 = i.slope;
             D d2 = i.y;
             ss << to_string(n1);
-            ss << to_string(n2);
             ss << to_string(d1);
             ss << to_string(d2);
         }
         segments_.clear();
-        return ss.str();
+        return std::move(ss.str());
     }
 
     PLRDataRep() = delete;
 
     PLRDataRep(D gamma) : gamma_(gamma), segments_() {}
+
+    PLRDataRep(D gamma, const std::vector<Segment<N, D>> &another) : gamma_(gamma), segments_(another) {}
 
     void Add(Segment<N, D> seg) {
         segments_.push_back(seg);
@@ -298,31 +295,25 @@ public:
         return segments_;
     }
 
-    std::pair<D,D> GetValue(N key) {
+    std::pair<D, D> GetValue(N key) {
         if (segments_.empty()) {
-            return std::pair<D,D>();
+            return std::pair<D, D>();
         }
-        auto res = binary_search(0, segments_.size()-1, key);
-        D tar = res.slope * key + res.y;
+        auto comparator = [](const Segment<N,D>& s1, const Segment<N,D>& s2) {
+            return s1.x_start < s2.x_start;
+        };
+        auto it = std::upper_bound(segments_.begin(), segments_.end(), Segment<N,D>(key,0,0), comparator);
+        if (it == segments_.begin()) {
+            return std::pair<D,D>(0,0);
+        }
+        auto res = *(--it);
+        auto tar = res.slope * key + res.y;
         return std::pair<D,D>(tar, gamma_);
     }
 
 private:
     std::vector<Segment<N, D>> segments_;
     D gamma_;
-    const Segment<N,D> binary_search(size_t first, size_t last, N target) {
-        if (last <= first) {
-            return segments_[first];
-        }
-        size_t mid = first + (last - first) /2;
-        if (segments_[mid].x_start == target) {
-            return segments_[mid];
-        }
-        if (segments_[mid].x_start > target) {
-            return binary_search(first, mid-1, target);
-        }
-        return binary_search(mid+1 , last, target);
-    }
 };
 
 
