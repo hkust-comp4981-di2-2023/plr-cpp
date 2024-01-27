@@ -142,7 +142,7 @@ public:
 
     // Process a point
     // REQUIRED: The PLR Model is not at the finishing state
-    Segment<N, D> process(Point<double> pt) {
+    void process(Point<double> pt) {
         assert(state != GREEDY_PLR_STATE::FINISHED);
         last_pt = pt;
         switch (state) {
@@ -156,32 +156,33 @@ public:
                 state = GREEDY_PLR_STATE::READY;
                 break;
             case GREEDY_PLR_STATE::READY:
-                return process_(pt);
+                process_(pt);
             default:
                 assert(false); // non-reachable code, suppress warning
         }
-        return Segment<N, D>::NO_VALID_SEGMENT;
     }
 
     // Finish the PLR Model
     // REQUIRED: Has not been called finish()
-    Segment<N, D> finish() {
+    std::vector<Segment<N,D>> finish() {
         assert(state != GREEDY_PLR_STATE::FINISHED);
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
                 state = GREEDY_PLR_STATE::FINISHED;
-                return Segment<N, D>::NO_VALID_SEGMENT;
+                break;
             case GREEDY_PLR_STATE::NEED_1_PT:
                 state = GREEDY_PLR_STATE::FINISHED;
-                return Segment<N, D>{static_cast<N>(s0.x), 0, s0.y};
+                processed_segments.push_back(Segment<N, D>{static_cast<N>(s0.x), 0, s0.y});
+                break;
             case GREEDY_PLR_STATE::READY:
                 state = GREEDY_PLR_STATE::FINISHED;
-                return current_segment();
+                processed_segments.push_back(current_segment());
+                break;
             default:
                 assert(false); // Unreachable code, suppress warning
         }
         // Unreachable state, no sure whether compiler require this
-        return Segment<N, D>::NO_VALID_SEGMENT;
+        return processed_segments;
     }
 
 private:
@@ -193,6 +194,7 @@ private:
     Point<D> pt_intersection_;
     Line<D> rho_lower;
     Line<D> rho_upper;
+    std::vector<Segment<N,D>> processed_segments;
 
     void setup_() {
         this->rho_lower = Line<D>(s0.getUpperBound(gamma), s1.getLowerBound(gamma));
@@ -207,12 +209,12 @@ private:
         return Segment<N, D>{segment_start, avg_slope, intercept};
     }
 
-    Segment<N, D> process_(Point<D> pt) {
+    void process_(Point<D> pt) {
         if (!(rho_lower.above(pt) && rho_upper.below(pt))) {
             auto prev_segment = current_segment();
             s0 = pt;
             state = GREEDY_PLR_STATE::NEED_1_PT;
-            return prev_segment;
+            processed_segments.push_back(prev_segment);
         }
         auto s_upper = pt.getUpperBound(gamma);
         auto s_lower = pt.getLowerBound(gamma);
@@ -223,8 +225,6 @@ private:
         if (rho_lower.above(s_lower)) {
             rho_lower = Line<D>(pt_intersection_, s_lower);
         }
-
-        return Segment<N, D>::NO_VALID_SEGMENT;
     }
 };
 
