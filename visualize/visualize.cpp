@@ -12,7 +12,7 @@ using namespace std;
 
 
 int main() {
-    const int GENERATE_TIMES = 25;
+    const int GENERATE_TIMES = 50;
     double block_num = 0;
     double key_num = 1;
     double key_jump;
@@ -28,20 +28,12 @@ int main() {
         key_jump = a(generator);
         key_num += key_jump;
     }
-
-    vector<Segment<uint64_t,double>> seg {};
     auto plr = GreedyPLR<uint64_t,double>(0.0005);
     for (int i = 0;i<original.size();i++) {
-        auto s = plr.process(original[i]);
-        if (s != Segment<uint64_t,double>::NO_VALID_SEGMENT) {
-            seg.push_back(s);
-        }
+        plr.process(original[i]);
     }
     auto s = plr.finish();
-    if (s != Segment<uint64_t,double>::NO_VALID_SEGMENT) {
-        seg.push_back(s);
-    }
-
+    cout << "PLR Completed" << endl;
     ofstream original_data;
     std::filesystem::path cwd = std::filesystem::current_path() / "original_data.csv";
     cout << filesystem::current_path() << endl;
@@ -59,8 +51,8 @@ int main() {
     cwd = std::filesystem::current_path() / "plr_data.csv";
     plr_data.open(cwd.string());
     plr_data << "x_start,slope,y" << endl;
-    for (int i = 0; i < seg.size();i++) {
-        plr_data << seg[i].x_start << "," << seg[i].slope << "," << seg[i].y << endl;
+    for (int i = 0; i < s.size();i++) {
+        plr_data << s[i].x_start << "," << s[i].slope << "," << s[i].y << endl;
     }
     plr_data.close();
     return 0;

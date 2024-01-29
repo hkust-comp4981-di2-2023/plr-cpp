@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#include <cmath>
 
 #ifndef PLR_LIBRARY_H
 #define PLR_LIBRARY_H
@@ -157,6 +158,7 @@ public:
                 break;
             case GREEDY_PLR_STATE::READY:
                 process_(pt);
+                break;
             default:
                 assert(false); // non-reachable code, suppress warning
         }
@@ -295,20 +297,24 @@ public:
         return segments_;
     }
 
-    std::pair<D, D> GetValue(N key) {
+// Return the range of the possible block
+// [lower bound, upper bound] (error-bound included)
+// with the key encoded as type N
+// [2,1] pair indicates its error (or all [l,r] s.t. r < l) is error or invalid.
+    std::pair<N, N> GetValue(N key) {
         if (segments_.empty()) {
-            return std::pair<D, D>();
+            return std::pair<N, N>();
         }
         auto comparator = [](const Segment<N,D>& s1, const Segment<N,D>& s2) {
             return s1.x_start < s2.x_start;
         };
         auto it = std::upper_bound(segments_.begin(), segments_.end(), Segment<N,D>(key,0,0), comparator);
         if (it == segments_.begin()) {
-            return std::pair<D,D>(0,0);
+            return std::pair<N,N>(2,1);
         }
         auto res = *(--it);
         auto tar = res.slope * key + res.y;
-        return std::pair<D,D>(tar, gamma_);
+        return std::pair<N,N>(floor(tar-gamma_),ceil((tar+gamma_)));
     }
 
 private:

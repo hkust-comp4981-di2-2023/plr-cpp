@@ -6,6 +6,7 @@
 #include "library.h"
 #include <vector>
 #include <string>
+#include <cmath>
 
 #include <fstream>
 
@@ -137,9 +138,9 @@ TEST(PLRDataRepTest, TestBinarySearch) {
     auto test1 = plrDataRep.GetValue(6152);
     auto test2 = plrDataRep.GetValue(9661);
     auto test3 = plrDataRep.GetValue(1990);
-    EXPECT_DOUBLE_EQ(test1.first, 0.00184995 * 6152 + 0.620625);
-    EXPECT_DOUBLE_EQ(test2.first, 9661 * 0.00175636 + 3.19647);
-    EXPECT_DOUBLE_EQ(test3.first, 0.00155507* 1990 + 1.13784);
+    EXPECT_DOUBLE_EQ(test1.first, floor(0.00184995 * 6152 + 0.620625-plrDataRep.GetGamma()));
+    EXPECT_DOUBLE_EQ(test2.first, floor(9661 * 0.00175636 + 3.19647-plrDataRep.GetGamma()));
+    EXPECT_DOUBLE_EQ(test3.first, floor(0.00155507* 1990 + 1.13784-plrDataRep.GetGamma()));
 }
 
 int main() {
