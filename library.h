@@ -50,7 +50,7 @@ struct Point {
 
     Point() = default;
 
-    Point(T x, T y) : x(x), y(y) {}
+    Point(T _x, T _y) : x(_x), y(_y) {}
 
     Point<T> getUpperBound(T gamma) {
         return Point(this->x, this->y + gamma);
@@ -71,7 +71,7 @@ struct Line {
 
     Line() = default;
 
-    Line(T a1, T a2) : a1(a1), a2(a2) {}
+    Line(T _a1, T _a2) : a1(_a1), a2(_a2) {}
 
     Line(Point<T> a, Point<T> b) {
         this->a1 = (b.y - a.y) / (b.x - a.x);
@@ -120,7 +120,7 @@ struct __attribute__((packed)) Segment {
 
     Segment(const Segment<N, D> &) = default;
 
-    Segment(N x_start, D slope, D y) : x_start(x_start), slope(slope), y(y) {}
+    Segment(N _x_start, D _slope, D _y) : x_start(_x_start), slope(_slope), y(_y) {}
 };
 
 template<typename N, typename D>
@@ -139,7 +139,7 @@ class GreedyPLR {
     static_assert(std::is_floating_point<D>(), "Floating point should be placed in second placement,");
     static_assert(std::is_integral<N>(), "Integer should be placed in first placement.");
 public:
-    GreedyPLR(D gamma) : state(GREEDY_PLR_STATE::NEED_2_PT), gamma(gamma) {}
+    GreedyPLR(D _gamma) : state(GREEDY_PLR_STATE::NEED_2_PT), gamma(_gamma) {}
 
     // Process a point
     // REQUIRED: The PLR Model is not at the finishing state
