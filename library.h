@@ -339,8 +339,8 @@ public:
     }
 
 private:
-    std::vector<Segment<N, D>> segments_;
     D gamma_;
+    std::vector<Segment<N, D>> segments_;
 };
 
 
