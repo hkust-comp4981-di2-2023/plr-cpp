@@ -12,6 +12,25 @@
 
 const double DELTA = 0.005;
 
+// This function is similar to the to_type function
+// except "a" will result in "a\0\0\0\0\0\0\0"
+// It is a reversed version of to_type
+template <typename N>
+N stringToNumber(std::string str) {
+    const size_t value_size = sizeof(N) / sizeof(char);
+    union {
+        char buffer[value_size];
+        N value {};
+    } obj;
+    size_t count = value_size-1;
+    for (auto i = std::begin(str); i != std::end(str); i++) {
+        obj.buffer[count--] = *(i);
+//        std::cout << count << std::endl;
+        assert(count >= 0);
+    }
+    return obj.value;
+}
+
 // A utility function for encoding any value to string
 // Encoding scheme will be memcpy()
 template<typename T>
@@ -26,18 +45,20 @@ std::string to_string(T value) {
 }
 
 // A utility function for decoding any value from string
+// If we have a string "a", it will convert to 97 (reversed order)
 // Encoding scheme will be memcpy()
 template<typename T>
 T to_type(std::string str) {
     const size_t value_size = sizeof(T) / sizeof(char);
     union {
         char buffer[value_size];
-        T value;
+        T value {};
     } obj;
     size_t count = 0;
     for (auto i = std::begin(str); i != std::end(str); i++) {
         obj.buffer[count++] = *(i);
     }
+//    std::cout << obj.buffer[7] << std::endl;
     return obj.value;
 }
 

@@ -143,6 +143,32 @@ TEST(PLRDataRepTest, TestBinarySearch) {
     EXPECT_DOUBLE_EQ(test3.first, floor(0.00155507* 1990 + 1.13784-plrDataRep.GetGamma()));
 }
 
+TEST(PLRDataRepTest, testNull) {
+    std::string str = "a";
+    auto res = to_type<uint64_t>(str);
+    EXPECT_EQ(res, 97);
+}
+
+TEST(StrToUint, testNull) {
+    auto str = "";
+    auto i = stringToNumber<uint64_t>(str);
+    EXPECT_EQ(i, 0);
+}
+
+TEST(StrToUint, testAcharacter) {
+    std::string str = "a";
+    std::cout <<str.length() << std::endl;
+    auto i = stringToNumber<uint64_t>(str);
+    EXPECT_EQ(i, 6989586621679009792);
+}
+
+TEST(StrToUint, testAllCharacter) {
+    std::string str = "!!!!!!!!";
+    std::cout <<str.length() << std::endl;
+    auto i = stringToNumber<uint64_t>(str);
+    EXPECT_EQ(i, 2387225703656530209);
+}
+
 int main() {
     ::testing::InitGoogleTest();
     return RUN_ALL_TESTS();
