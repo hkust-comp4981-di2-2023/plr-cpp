@@ -269,7 +269,7 @@ public:
         assert(encoded_str.size() % elementSize == sizeD);
         this->gamma_ = to_type<D>(encoded_str.substr(ptr, sizeD));
         ptr += sizeD;
-        for (int i = 0; i < count; i++) {
+        for (size_t i = 0; i < count; i++) {
             auto n1 = encoded_str.substr(ptr, sizeN);
             ptr += sizeN;
             auto d1 = encoded_str.substr(ptr, sizeD);
