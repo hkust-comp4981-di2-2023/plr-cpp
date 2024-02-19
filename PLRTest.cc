@@ -157,14 +157,14 @@ TEST(StrToUint, testNull) {
 
 TEST(StrToUint, testAcharacter) {
     std::string str = "a";
-    std::cout <<str.length() << std::endl;
+//    std::cout <<str.length() << std::endl;
     auto i = stringToNumber<uint64_t>(str);
     EXPECT_EQ(i, 6989586621679009792);
 }
 
 TEST(StrToUint, testAllCharacter) {
     std::string str = "!!!!!!!!";
-    std::cout <<str.length() << std::endl;
+//    std::cout <<str.length() << std::endl;
     auto i = stringToNumber<uint64_t>(str);
     EXPECT_EQ(i, 2387225703656530209);
 }

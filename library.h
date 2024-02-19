@@ -323,6 +323,7 @@ public:
 // with the key encoded as type N
 // [2,1] pair indicates its error (or all [l,r] s.t. r < l) is error or invalid.
     std::pair<N, N> GetValue(N key) {
+        std::cout << "Getting value of " << key << std::endl;
         if (segments_.empty()) {
             return std::pair<N, N>();
         }
@@ -337,7 +338,20 @@ public:
         auto tar = res.slope * key + res.y;
         return std::pair<N,N>(floor(tar-gamma_),ceil((tar+gamma_)));
     }
-
+    // Debug only: print all data points using std::cout
+    void PrintAllDataPoint() {
+        std::cout << "----------------------------" << std::endl;
+        std::cout << "PLRDataRep: Print All Status" << std::endl;
+        std::cout << "Segment array size: " << segments_.size() << std::endl;
+        std::cout << "----------------------------" << std::endl;
+        std::cout << "Element Data: " << std::endl;
+        size_t count = 0;
+        for (auto i : segments_) {
+            std::cout << count << ". " << i.x_start << ", " << i.slope << ", " << i.y << std::endl;
+            count++;
+        }
+        std::cout << "----------------------------" << std::endl;
+    }
 private:
     D gamma_;
     std::vector<Segment<N, D>> segments_;
