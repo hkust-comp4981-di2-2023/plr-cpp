@@ -277,7 +277,7 @@ private:
         // If the count < 100, the step is 1
         auto ra = range(current_segment().x_start + 1, cur_pt_x);
         if (count >= 100) {
-            ra = ra.step(100);
+            ra.step(100);
         }
 
         // As the new segment starts, the last_pt variable stores the previously successfully processed pt
