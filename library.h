@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include "range.hpp"
 #include <sstream>
 #include <cmath>
 
@@ -12,17 +13,19 @@
 
 const double DELTA = 0.005;
 
+using util::lang::range;
+
 // This function is similar to the to_type function
 // except "a" will result in "a\0\0\0\0\0\0\0"
 // It is a reversed version of to_type
-template <typename N>
+template<typename N>
 N stringToNumber(std::string str) {
     const size_t value_size = sizeof(N) / sizeof(char);
     union {
         char buffer[value_size];
-        N value {};
+        N value{};
     } obj;
-    size_t count = value_size-1;
+    size_t count = value_size - 1;
     for (auto i = std::begin(str); i != std::end(str); i++) {
         obj.buffer[count--] = *(i);
 //        std::cout << count << std::endl;
@@ -52,7 +55,7 @@ T to_type(std::string str) {
     const size_t value_size = sizeof(T) / sizeof(char);
     union {
         char buffer[value_size];
-        T value {};
+        T value{};
     } obj;
     size_t count = 0;
     for (auto i = std::begin(str); i != std::end(str); i++) {
@@ -163,16 +166,24 @@ public:
     GreedyPLR(D _gamma) : state(GREEDY_PLR_STATE::NEED_2_PT), gamma(_gamma) {}
 
     // Process a point
+    // This function will be recursively called with fillMiddleDataPt_
+    // Return if pt.x < seg[-1].x_start
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<double> pt) {
         assert(state != GREEDY_PLR_STATE::FINISHED);
-        last_pt = pt;
+        // if the current feeding data point is < current segment x_start, return
+        if (pt.x <= current_segment().x_start) {
+            return;
+        }
+
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
+                last_pt = pt;
                 s0 = pt;
                 state = GREEDY_PLR_STATE::NEED_1_PT;
                 break;
             case GREEDY_PLR_STATE::NEED_1_PT:
+                last_pt = pt;
                 s1 = pt;
                 setup_();
                 state = GREEDY_PLR_STATE::READY;
@@ -187,7 +198,7 @@ public:
 
     // Finish the PLR Model
     // REQUIRED: Has not been called finish()
-    std::vector<Segment<N,D>> finish() {
+    std::vector<Segment<N, D>> finish() {
         assert(state != GREEDY_PLR_STATE::FINISHED);
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
@@ -217,7 +228,7 @@ private:
     Point<D> pt_intersection_;
     Line<D> rho_lower;
     Line<D> rho_upper;
-    std::vector<Segment<N,D>> processed_segments;
+    std::vector<Segment<N, D>> processed_segments;
 
     void setup_() {
         this->rho_lower = Line<D>(s0.getUpperBound(gamma), s1.getLowerBound(gamma));
@@ -234,11 +245,14 @@ private:
 
     void process_(Point<D> pt) {
         if (!(rho_lower.above(pt) && rho_upper.below(pt))) {
+            // Creating a new segment, the overshooting prevention should place here
+            fillMiddleDataPt_(pt);
             auto prev_segment = current_segment();
             s0 = pt;
             state = GREEDY_PLR_STATE::NEED_1_PT;
             processed_segments.push_back(prev_segment);
         }
+        last_pt = pt;
         auto s_upper = pt.getUpperBound(gamma);
         auto s_lower = pt.getLowerBound(gamma);
 
@@ -247,6 +261,34 @@ private:
         }
         if (rho_lower.above(s_lower)) {
             rho_lower = Line<D>(pt_intersection_, s_lower);
+        }
+    }
+
+    // This function avoids the overshooting issues of predicting data block due to lack of data point
+    // The function will first generate a range with 100 interval,
+    // and see if the range overflow
+    // if yes, recursively call the function
+    // terminating condition has been set in process(pt)
+    void fillMiddleDataPt_(Point<D> pt) {
+        // first find the step between pt and last segment start
+        N cur_pt_x = round(pt.x);
+        size_t count = cur_pt_x - current_segment().x_start;
+        // Generate a range based on the count
+        // If the count < 100, the step is 1
+        auto ra = range(current_segment().x_start + 1, cur_pt_x);
+        if (count >= 100) {
+            ra = ra.step(100);
+        }
+
+        // As the new segment starts, the last_pt variable stores the previously successfully processed pt
+        // Use the last pt and the current pt to create a step function for training
+        // The recursive call should take care of the last_pt variable, visualization test required
+
+        auto pt_step = (pt.y - last_pt.y) / ra.size();
+        auto cur_step = last_pt.y;
+        for (auto i : ra) {
+            process(Point<D>(i,cur_step));
+            cur_step += pt_step;
         }
     }
 };
@@ -327,17 +369,18 @@ public:
         if (segments_.empty()) {
             return std::pair<N, N>();
         }
-        auto comparator = [](const Segment<N,D>& s1, const Segment<N,D>& s2) {
+        auto comparator = [](const Segment<N, D> &s1, const Segment<N, D> &s2) {
             return s1.x_start < s2.x_start;
         };
-        auto it = std::upper_bound(segments_.begin(), segments_.end(), Segment<N,D>(key,0,0), comparator);
-        if (it == segments_.begin()) {
-            return std::pair<N,N>(2,1);
+        auto it = std::upper_bound(segments_.begin(), segments_.end(), Segment<N, D>(key, 0, 0), comparator);
+        if (it == segments_.end()) {
+            return std::pair<N, N>(2, 1);
         }
         auto res = *(--it);
         auto tar = res.slope * key + res.y;
-        return std::pair<N,N>(floor(tar-gamma_),ceil((tar+gamma_)));
+        return std::pair<N, N>(floor(tar - gamma_), ceil((tar + gamma_)));
     }
+
     // Debug only: print all data points using std::cout
     void PrintAllDataPoint() {
         std::cout << "----------------------------" << std::endl;
@@ -346,12 +389,13 @@ public:
         std::cout << "----------------------------" << std::endl;
         std::cout << "Element Data: " << std::endl;
         size_t count = 0;
-        for (auto i : segments_) {
+        for (auto i: segments_) {
             std::cout << count << ". " << i.x_start << ", " << i.slope << ", " << i.y << std::endl;
             count++;
         }
         std::cout << "----------------------------" << std::endl;
     }
+
 private:
     D gamma_;
     std::vector<Segment<N, D>> segments_;
