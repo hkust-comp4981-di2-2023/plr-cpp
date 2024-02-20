@@ -38,8 +38,8 @@ public:
     explicit pyrange(T arg_e) : br{ 0, 1 }, er{ arg_e } {}
     explicit pyrange(T arg_b, T arg_e, T arg_s = 1) : br{ arg_b, arg_s }, er{ arg_e }
     { if (!arg_s) throw std::out_of_range{"pyrange: step must be non-zero"}; }
-    auto& begin() { return br; }
-    auto& end() { return er; }
+    begin_range& begin() { return br; }
+    end_range& end() { return er; }
 };
 
 // This function is similar to the to_type function
