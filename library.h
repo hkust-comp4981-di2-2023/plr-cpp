@@ -307,7 +307,7 @@ private:
 
         size_t whole_range_size = 0;
         auto t {ra};
-        for (auto a: t) {
+        for (auto it = t.begin(); it != t.end();++it) {
             whole_range_size++;
         }
         // As the new segment starts, the last_pt variable stores the previously successfully processed pt
@@ -316,7 +316,8 @@ private:
 
         auto pt_step = (pt.y - last_pt.y) / whole_range_size;
         D cur_step = last_pt.y;
-        for (auto i : ra) {
+        for (auto it = t.begin(); it != t.end();++it) {
+            auto i = *(it);
             process(Point<D>(i,cur_step));
             cur_step += pt_step;
         }
