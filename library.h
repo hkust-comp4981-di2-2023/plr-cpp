@@ -302,7 +302,12 @@ private:
         size_t count = cur_pt_x - current_segment().x_start;
         // Generate a range based on the count
         // If the count < 100, the step is 1
-        uint64_t step = 1 ? count < 100: 100;
+        uint64_t step;
+        if (count < 100) {
+            step = count;
+        } else {
+            step = 100;
+        }
         auto ra = pyrange<uint64_t>(current_segment().x_start + 1, cur_pt_x,step);
 
         size_t whole_range_size = 0;
