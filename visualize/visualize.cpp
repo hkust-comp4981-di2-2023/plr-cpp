@@ -12,22 +12,22 @@ using namespace std;
 
 
 int main() {
-    const int GENERATE_TIMES = 50;
-    double block_num = 0;
-    double key_num = 1;
-    double key_jump;
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine generator (seed);
-    auto a = std::normal_distribution<double>(500, 100);
-    vector<Point<double>> original {};
-    srand(time(nullptr));
-    // Generate data
-    for (int i = 0; i < GENERATE_TIMES;i++) {
-        original.push_back(Point<double>(key_num,block_num));
-        block_num++;
-        key_jump = a(generator);
-        key_num += key_jump;
-    }
+//    const int GENERATE_TIMES = 50;
+//    double block_num = 0;
+//    double key_num = 1;
+//    double key_jump;
+//    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+//    std::default_random_engine generator (seed);
+//    auto a = std::normal_distribution<double>(500, 100);
+//    vector<Point<double>> original {};
+//    srand(time(nullptr));
+//    // Generate data
+//    for (int i = 0; i < GENERATE_TIMES;i++) {
+//        original.push_back(Point<double>(key_num,block_num));
+//        block_num++;
+//        key_jump = a(generator);
+//        key_num += key_jump;
+//    }
     auto plr = GreedyPLR<uint64_t,double>(0.0005);
     for (int i = 0;i<original.size();i++) {
         plr.process(original[i]);

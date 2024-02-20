@@ -4,8 +4,8 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
-#include "range.hpp"
 #include <sstream>
+#include <stdexcept>
 #include <cmath>
 
 #ifndef PLR_LIBRARY_H
@@ -13,7 +13,34 @@
 
 const double DELTA = 0.005;
 
-using util::lang::range;
+
+// pyrange.hpp : implement Python-style range class to use with range-for statement
+
+// This class is referred from https://learnmoderncpp.com/2019/11/18/pythons-range-in-20-lines-of-c/
+// No license provided
+// TODO: Add a license here
+
+template<typename T>
+class pyrange {
+    struct end_range {
+        T e;
+    };
+    struct begin_range {
+        T b, s;
+        begin_range& operator++() { b += s; return *this; }
+        bool operator!=(const end_range& c) const
+        { return (s < 0) ? b > c.e : b < c.e; }
+        const T& operator*() const { return b; }
+    };
+    begin_range br;
+    end_range er;
+public:
+    explicit pyrange(T arg_e) : br{ 0, 1 }, er{ arg_e } {}
+    explicit pyrange(T arg_b, T arg_e, T arg_s = 1) : br{ arg_b, arg_s }, er{ arg_e }
+    { if (!arg_s) throw std::out_of_range{"pyrange: step must be non-zero"}; }
+    auto& begin() { return br; }
+    auto& end() { return er; }
+};
 
 // This function is similar to the to_type function
 // except "a" will result in "a\0\0\0\0\0\0\0"
@@ -275,17 +302,20 @@ private:
         size_t count = cur_pt_x - current_segment().x_start;
         // Generate a range based on the count
         // If the count < 100, the step is 1
-        auto ra = range(current_segment().x_start + 1, cur_pt_x);
-        if (count >= 100) {
-            ra.step(100);
-        }
+        uint64_t step = 1 ? count < 100: 100;
+        auto ra = pyrange<uint64_t>(current_segment().x_start + 1, cur_pt_x,step);
 
+        size_t whole_range_size = 0;
+        auto t {ra};
+        for (auto a: t) {
+            whole_range_size++;
+        }
         // As the new segment starts, the last_pt variable stores the previously successfully processed pt
         // Use the last pt and the current pt to create a step function for training
         // The recursive call should take care of the last_pt variable, visualization test required
 
-        auto pt_step = (pt.y - last_pt.y) / ra.size();
-        auto cur_step = last_pt.y;
+        auto pt_step = (pt.y - last_pt.y) / whole_range_size;
+        D cur_step = last_pt.y;
         for (auto i : ra) {
             process(Point<D>(i,cur_step));
             cur_step += pt_step;
