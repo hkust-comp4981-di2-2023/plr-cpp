@@ -405,16 +405,19 @@ public:
 // [2,1] pair indicates its error (or all [l,r] s.t. r < l) is error or invalid.
     std::pair<N, N> GetValue(N key) {
         std::cout << "Getting value of " << key << std::endl;
+        assert(key >= segments_[0].x_start);
         if (segments_.empty()) {
             return std::pair<N, N>();
         }
         auto comparator = [](const Segment<N, D> &s1, const Segment<N, D> &s2) {
             return s1.x_start < s2.x_start;
         };
-        auto it = std::upper_bound(segments_.begin(), segments_.end(), Segment<N, D>(key, 0, 0), comparator);
-        if (it == segments_.end()) {
-            return std::pair<N, N>(2, 1);
-        }
+        auto it = std::lower_bound(segments_.begin(), segments_.end(), Segment<N, D>(key, 0, 0), comparator);
+//        if (it == segments_.end()) {
+//            return std::pair<N, N>(2, 1);
+//        }
+        // Currently find the keys linearly
+
         auto res = *(--it);
         auto tar = res.slope * key + res.y;
         return std::pair<N, N>(floor(tar - gamma_), ceil((tar + gamma_)));
