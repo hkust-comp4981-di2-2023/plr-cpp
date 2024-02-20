@@ -202,7 +202,6 @@ public:
         if (pt.x <= current_segment().x_start) {
             return;
         }
-
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
                 last_pt = pt;
@@ -297,6 +296,10 @@ private:
     // if yes, recursively call the function
     // terminating condition has been set in process(pt)
     void fillMiddleDataPt_(Point<D> pt) {
+        // Check whether the pt is not exceeding gamma
+        if(current_segment().slope * pt.x + current_segment().y <= pt.y - gamma) {
+            return;
+        }
         // first find the step between pt and last segment start
         N cur_pt_x = round(pt.x);
         size_t count = cur_pt_x - current_segment().x_start;
@@ -306,7 +309,7 @@ private:
         if (count < 100) {
             step = count;
         } else {
-            step = 100;
+            step = count/100;
         }
         auto ra = pyrange<uint64_t>(current_segment().x_start + 1, cur_pt_x,step);
 
