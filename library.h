@@ -417,8 +417,13 @@ public:
 //            return std::pair<N, N>(2, 1);
 //        }
         // Currently find the keys linearly
+        Segment<N,D> res;
+        if (it == segments_.begin()) {
+            res = *it;
+        } else {
+            res = *(--it);
+        }
 
-        auto res = *(--it);
         auto tar = res.slope * key + res.y;
         return std::pair<N, N>(floor(tar - gamma_), ceil((tar + gamma_)));
     }
