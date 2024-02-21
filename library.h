@@ -425,7 +425,7 @@ public:
         }
 
         auto tar = res.slope * key + res.y;
-        return std::pair<N, N>(floor(tar - gamma_), ceil((tar + gamma_)));
+        return std::pair<N, N>(floor(tar - gamma_), floor((tar + gamma_)));
     }
 
     // Debug only: print all data points using std::cout
