@@ -56,7 +56,6 @@ N stringToNumber(std::string str) {
     for (auto i = std::begin(str); i != std::end(str); i++) {
         obj.buffer[count--] = *(i);
 //        std::cout << count << std::endl;
-        assert(count >= 0);
     }
     return obj.value;
 }
