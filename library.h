@@ -197,7 +197,7 @@ public:
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<double> pt) {
         if (dp_count != 0 ) {
-            int base = 100* std::pow(10, std::log(1/gamma)+gamma)*log(pt.x- last_pt.x);
+            int base = 100* std::pow(10, std::log(1/gamma)+gamma)*(std::max(1.0,log(pt.x- last_pt.x)));
             if (base >  pt.x - last_pt.x) {
                 base = (pt.x - last_pt.x >=100) ? 100: 1;
             }
