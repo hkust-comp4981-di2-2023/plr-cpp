@@ -440,7 +440,11 @@ public:
         }
 
         auto tar = res.slope * key + res.y;
-        return std::pair<N, N>(floor(tar - gamma_), floor((tar + gamma_)));
+        N lower_bound = floor(tar - gamma_);
+        N upper_bound = floor((tar + gamma_));
+        lower_bound = (lower_bound < 0) ? 0 : lower_bound;
+        upper_bound = (upper_bound < 0) ? 0 : upper_bound;
+        return std::pair<N, N>(lower_bound, upper_bound);
     }
 
     // Debug only: print all data points using std::cout
