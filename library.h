@@ -196,14 +196,18 @@ public:
     // Return if pt.x < seg[-1].x_start
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<double> pt) {
-        if (dp_count != 0 && pt.x - last_pt.x >= 10000) {
+        if (dp_count != 0 ) {
+            int base = 100* std::pow(10, std::log(1/gamma)+gamma)*log(pt.x- last_pt.x);
+            if (base >  pt.x - last_pt.x) {
+                base = pt.x - last_pt.x;
+            }
             // Interpolate all pts
-            D step_y = (pt.y - last_pt.y) / 10000;
+            D step_y = (pt.y - last_pt.y) / base;
             D cur_y = last_pt.y;
-            D step_x = (pt.x - last_pt.x) / 10000;
+            D step_x = (pt.x - last_pt.x) / base;
             D cur_x = last_pt.x;
             // 100 sections?
-            for (int i = 0; i< 9999; i++) {
+            for (int i = 0; i< base-1; i++) {
                 cur_x += step_x;
                 cur_y += step_y;
                 processHelper(Point<D>(cur_x,cur_y));
