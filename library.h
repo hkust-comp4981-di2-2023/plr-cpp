@@ -200,9 +200,13 @@ public:
             // Interpolate all pts
             D slope = (pt.x - last_pt.x) / (pt.y - last_pt.y);
             D cur_y = last_pt.y;
-            for (N i = last_pt.x; i < pt.x; i++) {
-                cur_y+=slope;
-                processHelper(Point<D>(i,cur_y));
+            D step = (pt.x - last_pt.x) / 100;
+            D cur_x = last_pt.x;
+            // 100 sections?
+            for (int i = 0; i< 98; i++) {
+                cur_x += step;
+                cur_y += slope*step;
+                processHelper(Point<D>(cur_x,cur_y));
             }
         }
         processHelper(pt);
