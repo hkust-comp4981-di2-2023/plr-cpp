@@ -196,29 +196,18 @@ public:
     // Return if pt.x < seg[-1].x_start
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<double> pt) {
-        assert(state != GREEDY_PLR_STATE::FINISHED);
-        // if the current feeding data point is < current segment x_start, return
-        if (pt.x <= current_segment().x_start) {
-            return;
+        if (dp_count != 0) {
+            // Interpolate all pts
+            D slope = (pt.x - last_pt.x) / (pt.y - last_pt.y);
+            D cur_y = last_pt.y;
+            for (N i = last_pt.x; i < pt.x; i++) {
+                cur_y+=slope;
+                processHelper(Point<D>(i,cur_y));
+            }
         }
-        switch (state) {
-            case GREEDY_PLR_STATE::NEED_2_PT:
-                last_pt = pt;
-                s0 = pt;
-                state = GREEDY_PLR_STATE::NEED_1_PT;
-                break;
-            case GREEDY_PLR_STATE::NEED_1_PT:
-                last_pt = pt;
-                s1 = pt;
-                setup_();
-                state = GREEDY_PLR_STATE::READY;
-                break;
-            case GREEDY_PLR_STATE::READY:
-                process_(pt);
-                break;
-            default:
-                assert(false); // non-reachable code, suppress warning
-        }
+        processHelper(pt);
+        last_pt = pt;
+        dp_count++;
     }
 
     // Finish the PLR Model
@@ -254,6 +243,7 @@ private:
     Line<D> rho_lower;
     Line<D> rho_upper;
     std::vector<Segment<N, D>> processed_segments;
+    size_t dp_count = 0;
 
     void setup_() {
         this->rho_lower = Line<D>(s0.getUpperBound(gamma), s1.getLowerBound(gamma));
@@ -268,16 +258,38 @@ private:
         return Segment<N, D>{segment_start, avg_slope, intercept};
     }
 
+    void processHelper(Point<D> pt) {
+        assert(state != GREEDY_PLR_STATE::FINISHED);
+        // if the current feeding data point is < current segment x_start, return
+        if (pt.x <= current_segment().x_start) {
+            return;
+        }
+        switch (state) {
+            case GREEDY_PLR_STATE::NEED_2_PT:
+                s0 = pt;
+                state = GREEDY_PLR_STATE::NEED_1_PT;
+                break;
+            case GREEDY_PLR_STATE::NEED_1_PT:
+                s1 = pt;
+                setup_();
+                state = GREEDY_PLR_STATE::READY;
+                break;
+            case GREEDY_PLR_STATE::READY:
+                process_(pt);
+                break;
+            default:
+                assert(false); // non-reachable code, suppress warning
+        }
+    }
     void process_(Point<D> pt) {
         if (!(rho_lower.above(pt) && rho_upper.below(pt))) {
             // Creating a new segment, the overshooting prevention should place here
-            fillMiddleDataPt_(pt);
+//            fillMiddleDataPt_(pt);
             auto prev_segment = current_segment();
             s0 = pt;
             state = GREEDY_PLR_STATE::NEED_1_PT;
             processed_segments.push_back(prev_segment);
         }
-        last_pt = pt;
         auto s_upper = pt.getUpperBound(gamma);
         auto s_lower = pt.getLowerBound(gamma);
 
