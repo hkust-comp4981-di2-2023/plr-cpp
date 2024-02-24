@@ -199,7 +199,7 @@ public:
         if (dp_count != 0 ) {
             int base = 100* std::pow(10, std::log(1/gamma)+gamma)*log(pt.x- last_pt.x);
             if (base >  pt.x - last_pt.x) {
-                base = pt.x - last_pt.x;
+                base = (pt.x - last_pt.x >=100) ? 100: 1;
             }
             // Interpolate all pts
             D step_y = (pt.y - last_pt.y) / base;
