@@ -196,7 +196,7 @@ public:
     // Return if pt.x < seg[-1].x_start
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<double> pt) {
-        if (dp_count != 0) {
+        if (dp_count != 0 && pt.x - last_pt.x >= 100) {
             // Interpolate all pts
             D step_y = (pt.y - last_pt.y) / 100;
             D cur_y = last_pt.y;
