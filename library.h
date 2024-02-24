@@ -269,7 +269,7 @@ private:
     void processHelper(Point<D> pt) {
         assert(state != GREEDY_PLR_STATE::FINISHED);
         // if the current feeding data point is < current segment x_start, return
-        if (pt.x <= current_segment().x_start) {
+        if (pt.x <= last_pt.x) {
             return;
         }
         switch (state) {
