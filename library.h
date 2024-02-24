@@ -198,14 +198,14 @@ public:
     void process(Point<double> pt) {
         if (dp_count != 0) {
             // Interpolate all pts
-            D slope = (pt.x - last_pt.x) / (pt.y - last_pt.y);
+            D step_y = (pt.y - last_pt.y) / 100;
             D cur_y = last_pt.y;
-            D step = (pt.x - last_pt.x) / 100;
+            D step_x = (pt.x - last_pt.x) / 100;
             D cur_x = last_pt.x;
             // 100 sections?
             for (int i = 0; i< 98; i++) {
-                cur_x += step;
-                cur_y += slope*step;
+                cur_x += step_x;
+                cur_y += step_y;
                 processHelper(Point<D>(cur_x,cur_y));
             }
         }
