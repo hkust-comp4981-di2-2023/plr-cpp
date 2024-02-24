@@ -432,12 +432,11 @@ public:
         std::cout << "----------------------------" << std::endl;
         std::cout << "PLRDataRep: Print All Status" << std::endl;
         std::cout << "Segment array size: " << segments_.size() << std::endl;
+        std::cout << "Gamma: " << gamma_ << std::endl;
         std::cout << "----------------------------" << std::endl;
         std::cout << "Element Data: " << std::endl;
-        size_t count = 0;
         for (auto i: segments_) {
-            std::cout << count << ". " << i.x_start << ", " << i.slope << ", " << i.y << std::endl;
-            count++;
+            std::cout <<   i.x_start << ", " << i.slope << ", " << i.y << std::endl;
         }
         std::cout << "----------------------------" << std::endl;
     }
