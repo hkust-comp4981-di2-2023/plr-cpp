@@ -433,7 +433,7 @@ public:
 // [2,1] pair indicates its error (or all [l,r] s.t. r < l) is error or invalid.
     std::pair<N, N> GetValue(N key) {
 //        std::cout << "Getting value of " << key << std::endl;
-//        assert(key >= segments_[0].x_start);
+        assert(key >= segments_[0].x_start);
         if (segments_.empty()) {
             return std::pair<N, N>();
         }
