@@ -191,45 +191,37 @@ class GreedyPLR {
 public:
     GreedyPLR(D _gamma) : state(GREEDY_PLR_STATE::NEED_2_PT), gamma(_gamma) {}
 
-    // Add non-first key point to the queue
-    // When process() is called with updated data points
-    // The queue will first be processed by interpolating the new pt and last pt
-    // To ensure all keys could get successfully
-    // REQUIRED: finish() has not been called
-    void AddNonFirstKeyPoint(D key) {
-        assert(state != FINISHED);
-        wait_for_process.push_back(key);
-    }
-
-    // Process a point (first key of the data block)
+    // Process a point
     // This function will be recursively called with fillMiddleDataPt_
     // Return if pt.x < seg[-1].x_start
     // REQUIRED: The PLR Model is not at the finishing state
-    void process(Point<D> pt) {
-        if (! wait_for_process.empty()) {
-            D diff = pt.y - last_pt.y;
-            size_t arrSize = wait_for_process.size();
-            D step = diff / (2+ arrSize);
-            D curStep = step + last_pt.y;
-            for (auto i: wait_for_process) {
-                processHelper(Point<D>(i, curStep));
-                curStep += step;
+    void process(Point<double> pt) {
+        if (dp_count != 0 ) {
+            int base = 100* std::pow(10, std::log(1/gamma)+gamma)*(std::max(1.0,log(pt.x- last_pt.x)));
+            if (base >  pt.x - last_pt.x) {
+                base = (pt.x - last_pt.x >=100) ? 100: 1;
             }
-            wait_for_process.clear();
+            // Interpolate all pts
+            D step_y = (pt.y - last_pt.y) / base;
+            D cur_y = last_pt.y;
+            D step_x = (pt.x - last_pt.x) / base;
+            D cur_x = last_pt.x;
+            // 100 sections?
+            for (int i = 0; i< base-1; i++) {
+                cur_x += step_x;
+                cur_y += step_y;
+                processHelper(Point<D>(cur_x,cur_y));
+            }
         }
         processHelper(pt);
         last_pt = pt;
+        dp_count++;
     }
 
     // Finish the PLR Model
     // REQUIRED: Has not been called finish()
     std::vector<Segment<N, D>> finish() {
         assert(state != GREEDY_PLR_STATE::FINISHED);
-        if (!wait_for_process.empty()) {
-            D last_key = wait_for_process[wait_for_process.size()-1];
-            wait_for_process.pop_back();
-            process(Point<D>(last_key,last_pt.y + 0.9f));
-        }
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
                 state = GREEDY_PLR_STATE::FINISHED;
@@ -259,8 +251,7 @@ private:
     Line<D> rho_lower;
     Line<D> rho_upper;
     std::vector<Segment<N, D>> processed_segments;
-    // Wait for further interpolate lines
-    std::vector<D> wait_for_process;
+    size_t dp_count = 0;
 
     void setup_() {
         this->rho_lower = Line<D>(s0.getUpperBound(gamma), s1.getLowerBound(gamma));
@@ -433,7 +424,7 @@ public:
 // [2,1] pair indicates its error (or all [l,r] s.t. r < l) is error or invalid.
     std::pair<N, N> GetValue(N key) {
 //        std::cout << "Getting value of " << key << std::endl;
-        assert(key >= segments_[0].x_start);
+//        assert(key >= segments_[0].x_start);
         if (segments_.empty()) {
             return std::pair<N, N>();
         }
