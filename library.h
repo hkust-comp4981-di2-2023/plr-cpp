@@ -225,6 +225,11 @@ public:
     // REQUIRED: Has not been called finish()
     std::vector<Segment<N, D>> finish() {
         assert(state != GREEDY_PLR_STATE::FINISHED);
+        if (!wait_for_process.empty()) {
+            D last_key = wait_for_process[wait_for_process.size()-1];
+            wait_for_process.pop_back();
+            process(Point<D>(last_key,last_pt.y + 0.9f));
+        }
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
                 state = GREEDY_PLR_STATE::FINISHED;
