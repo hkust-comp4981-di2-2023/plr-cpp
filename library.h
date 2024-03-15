@@ -191,31 +191,34 @@ class GreedyPLR {
 public:
     GreedyPLR(D _gamma) : state(GREEDY_PLR_STATE::NEED_2_PT), gamma(_gamma) {}
 
-    // Process a point
+    // Add non-first key point to the queue
+    // When process() is called with updated data points
+    // The queue will first be processed by interpolating the new pt and last pt
+    // To ensure all keys could get successfully
+    // REQUIRED: finish() has not been called
+    void AddNonFirstKeyPoint(D key) {
+        assert(state != FINISHED);
+        wait_for_process.push_back(key);
+    }
+
+    // Process a point (first key of the data block)
     // This function will be recursively called with fillMiddleDataPt_
     // Return if pt.x < seg[-1].x_start
     // REQUIRED: The PLR Model is not at the finishing state
-    void process(Point<double> pt) {
-        if (dp_count != 0 ) {
-            int base = 100* std::pow(10, std::log(1/gamma)+gamma)*(std::max(1.0,log(pt.x- last_pt.x)));
-            if (base >  pt.x - last_pt.x) {
-                base = (pt.x - last_pt.x >=100) ? 100: 1;
+    void process(Point<D> pt) {
+        if (! wait_for_process.empty()) {
+            D diff = pt.y - last_pt.y;
+            size_t arrSize = wait_for_process.size();
+            D step = diff / (2+ arrSize);
+            D curStep = step + last_pt.y;
+            for (auto i: wait_for_process) {
+                processHelper(Point<D>(i, curStep));
+                curStep += step;
             }
-            // Interpolate all pts
-            D step_y = (pt.y - last_pt.y) / base;
-            D cur_y = last_pt.y;
-            D step_x = (pt.x - last_pt.x) / base;
-            D cur_x = last_pt.x;
-            // 100 sections?
-            for (int i = 0; i< base-1; i++) {
-                cur_x += step_x;
-                cur_y += step_y;
-                processHelper(Point<D>(cur_x,cur_y));
-            }
+            wait_for_process.clear();
         }
         processHelper(pt);
         last_pt = pt;
-        dp_count++;
     }
 
     // Finish the PLR Model
@@ -251,7 +254,8 @@ private:
     Line<D> rho_lower;
     Line<D> rho_upper;
     std::vector<Segment<N, D>> processed_segments;
-    size_t dp_count = 0;
+    // Wait for further interpolate lines
+    std::vector<D> wait_for_process;
 
     void setup_() {
         this->rho_lower = Line<D>(s0.getUpperBound(gamma), s1.getLowerBound(gamma));
