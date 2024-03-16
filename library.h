@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
+#include <functional>
 #include <cmath>
 
 #ifndef PLR_LIBRARY_H
@@ -453,63 +455,11 @@ public:
         return segments_;
     }
 
-// Return the range of the possible block
-// [lower bound, upper bound] (error-bound included)
-// with the key encoded as type N
-// [2,1] pair indicates its error (or all [l,r] s.t. r < l) is error or invalid.
-    std::pair<N, N> GetValueWithInfo(N key) {
-//        std::cout << "Getting value of " << key << std::endl;
-//        assert(key >= segments_[0].x_start);
-        if (segments_.empty()) {
-            return std::pair<N, N>();
-        }
-        auto comparator = [](const Segment<N, D> &s1, const Segment<N, D> &s2) {
-            return s1.x_start < s2.x_start;
-        };
-        auto it = std::lower_bound(segments_.begin(), segments_.end(), Segment<N, D>(key, 0, 0), comparator);
-//        if (it == segments_.end()) {
-//            return std::pair<N, N>(2, 1);
-//        }
-        // Currently find the keys linearly
-        std::cout << "Debug Message for PLR GetValue()..." << std::endl;
-        std::cout << "PLR DataRep Gamma: " << gamma_ << std::endl;
-        std::cout << "-----------------------------------" << std::endl;
-        Segment<N, D> res;
-        if (it == segments_.begin()) {
-            res = *it;
-            auto temp1 = *(++it);
-            std::cout << "Current: [" << res.x_start << ", " << res.slope << ", " << res.y << "]\n" << "Next: ["
-                      << temp1.x_start << ", " << temp1.slope << ", " << temp1.y << "]" << std::endl;
-            std::cout << "-----------------------------------" << std::endl;
-            assert(res.x_start < temp1.x_start);
-        } else {
-            res = *(it);
-            auto temp1 = *(--it);
-            auto temp2 = *(++++it);
-            std::cout << "Last: ["
-                      << temp1.x_start << ", " << temp1.slope << ", " << temp1.y << "]\n" << "Current: [" << res.x_start
-                      << ", " << res.slope << ", " << res.y << "]\n" << "Next: ["
-                      << temp2.x_start << ", " << temp2.slope << ", " << temp2.y << "]" << std::endl;
-
-            assert(temp1.x_start < res.x_start && temp2.x_start > res.x_start);
-        }
-
-        auto tar = res.slope * (D) key + res.y;
-        std::cout << "Output double bound: [" << tar-gamma_ << ", " << tar+gamma_ << "]\n";
-        N lower_bound = floor(tar - gamma_);
-        N upper_bound = ceil(tar + gamma_);
-        std::cout << "Output integer bound: [" << lower_bound << ", " << upper_bound << "]\n";
-//        lower_bound = (lower_bound < 0) ? 0 : lower_bound;
-//        upper_bound = (upper_bound < 0) ? 0 : upper_bound;
-        std::cout << "-----------------------------------" << std::endl;
-        return std::pair<N, N>(lower_bound, upper_bound);
-    }
-
     std::pair<N, N> GetValue(N key) {
 //        std::cout << "Getting value of " << key << std::endl;
 //        assert(key >= segments_[0].x_start);
         if (segments_.empty()) {
-            return std::pair<N, N>();
+            return std::pair<N,N>(0,0);
         }
         auto comparator = [](const Segment<N, D> &s1, const Segment<N, D> &s2) {
             return s1.x_start < s2.x_start;
@@ -521,13 +471,17 @@ public:
         Segment<N, D> res;
         if (it == segments_.begin()) {
             res = *it;
-            auto temp1 = *(++it);
-            assert(res.x_start < temp1.x_start);
+//            auto temp1 = *(++it);
+//            assert(key < temp1.x_start);
         } else {
-            res = *(--it);
-            auto temp1 = *(--it);
-            auto temp2 = *(++ ++it);
-            assert(temp1.x_start < res.x_start && temp2.x_start > res.x_start);
+            res = *it;
+//            auto temp1 = *(--it);
+//            auto temp2 = *(++ ++it);
+            if (key < res.x_start) {
+                res = *(--it);
+//                temp2 = *(++it);
+            }
+//            assert(key >= res.x_start && key < temp2.x_start);
         }
 
         auto tar = res.slope * (D) key + res.y;
@@ -535,7 +489,7 @@ public:
         N upper_bound = ceil((tar + gamma_));
 //        lower_bound = (lower_bound < 0) ? 0 : lower_bound;
 //        upper_bound = (upper_bound < 0) ? 0 : upper_bound;
-        return std::pair<N, N>(lower_bound, upper_bound);
+        return std::pair<N,N>(lower_bound, upper_bound);
     }
 
     // Debug only: print all data points using std::cout

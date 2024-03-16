@@ -7,6 +7,8 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <utility>
+#include <functional>
 
 #include <iostream>
 #include <fstream>
@@ -140,10 +142,11 @@ TEST(PLRDataRepTest, TestBinarySearch) {
     auto str = "1,0.00205553,-0.00205553\n884,0.00217752,0.0750024\n1840,0.00155507,1.13784\n2957,0.00133835,2.04209\n4156,0.00272838,-3.34017\n5153,0.00315824,-6.27621\n6151,0.00184995,0.620625\n7103,0.00190864,0.441149\n8001,0.00249316,-3.9502\n8853,0.00232765,-2.60776\n9567,0.00175636,3.19647\n10741,0.00256332,-5.53276\n11542,0,24";
     auto res = getFromRawString(str);
     auto plrDataRep = PLRDataRep<uint64_t, double>(0.0005, res);
+    uint64_t a,b;
     auto test1 = plrDataRep.GetValue(6152);
     auto test2 = plrDataRep.GetValue(9661);
     auto test3 = plrDataRep.GetValue(1990);
-    std::cout << "GetValue of: 0 " << plrDataRep.GetValue(0).first << std::endl;
+//    std::cout << "GetValue of: 0 " << plrDataRep.GetValue(0,a,b)->first << std::endl;
     EXPECT_DOUBLE_EQ(test1.first, floor(0.00184995 * 6152 + 0.620625-plrDataRep.GetGamma()));
     EXPECT_DOUBLE_EQ(test2.first, floor(9661 * 0.00175636 + 3.19647-plrDataRep.GetGamma()));
     EXPECT_DOUBLE_EQ(test3.first, floor(0.00155507* 1990 + 1.13784-plrDataRep.GetGamma()));
@@ -179,7 +182,7 @@ TEST(PLRDataRepTest, testReadWrite) {
     for (int i = 0; i < vec.size();i++) {
         if (i% KEYS_PER_BLOCK == 0) {
             // Process a new data block
-            plrModel.process(Point< double>(vec[i],(i/5)));
+            plrModel.process(Point< double>(vec[i],(i/KEYS_PER_BLOCK)));
         } else {
             // Process non-key
             plrModel.AddNonFirstKey(vec[i]);
@@ -198,7 +201,6 @@ TEST(PLRDataRepTest, testReadWrite) {
         }
         if (!(actual.first <= res && actual.second >= res)) {
             std::cout << "Generated key: " <<vec[i]  << "\tActual: [" << actual.first << ", " << actual.second << "] , Expected: " <<res << std::endl;
-            dataRep.GetValueWithInfo(vec[i]);
             EXPECT_TRUE(actual.first <= res && actual.second >= res);
         }
     }
