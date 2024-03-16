@@ -8,7 +8,10 @@
 #include <string>
 #include <cmath>
 
+#include <iostream>
 #include <fstream>
+#include "zipfan_dist.h"
+#include <random>
 
 std::vector<Segment<uint64_t, double>> getFromRawString(const std::string &rawString) {
     std::vector<Segment<uint64_t, double>> segments;
@@ -36,6 +39,8 @@ std::vector<Segment<uint64_t, double>> getFromRawString(const std::string &rawSt
 
     return segments;
 }
+
+
 
 TEST(PointTest, PointRetrival) {
     auto s = Point<double>(0.5, 0.5);
@@ -138,6 +143,7 @@ TEST(PLRDataRepTest, TestBinarySearch) {
     auto test1 = plrDataRep.GetValue(6152);
     auto test2 = plrDataRep.GetValue(9661);
     auto test3 = plrDataRep.GetValue(1990);
+    std::cout << "GetValue of: 0 " << plrDataRep.GetValue(0).first << std::endl;
     EXPECT_DOUBLE_EQ(test1.first, floor(0.00184995 * 6152 + 0.620625-plrDataRep.GetGamma()));
     EXPECT_DOUBLE_EQ(test2.first, floor(9661 * 0.00175636 + 3.19647-plrDataRep.GetGamma()));
     EXPECT_DOUBLE_EQ(test3.first, floor(0.00155507* 1990 + 1.13784-plrDataRep.GetGamma()));
@@ -147,6 +153,60 @@ TEST(PLRDataRepTest, testNull) {
     std::string str = "a";
     auto res = to_type<uint64_t>(str);
     EXPECT_EQ(res, 97);
+}
+
+TEST(PLRDataRepTest, testReadWrite) {
+    const size_t MAX_BLOCK_COUNT = 65536;
+    const size_t TEST_ITER = 100000;
+    const size_t KEYS_PER_BLOCK = 5;
+    const size_t SHIFT_OFFSET = 100000;
+    std::default_random_engine generator;
+    zipfian_int_distribution<uint64_t> dist(1,99999999,0.98);
+    std::vector<uint64_t> vec;
+    for (auto i = 0; i < MAX_BLOCK_COUNT * 5;i++) {
+        vec.push_back(dist(generator));
+    }
+
+    // sort the vector
+    std::sort(vec.begin(), vec.end());
+    // Erase same data
+    vec.erase( unique( vec.begin(), vec.end() ), vec.end() );
+    // Add them to the PLR Model
+    GreedyPLR<uint64_t,double> plrModel(0.3f);
+
+    // Per block have KEYS_PER_BLOCK
+    // May have < MAX_BLOCK_COUNT as duplicated key is enabled
+    for (int i = 0; i < vec.size();i++) {
+        if (i% KEYS_PER_BLOCK == 0) {
+            // Process a new data block
+            plrModel.process(Point< double>(vec[i],(i/5)));
+        } else {
+            // Process non-key
+            plrModel.AddNonFirstKey(vec[i]);
+        }
+    }
+
+    PLRDataRep<uint64_t, double> dataRep {0.3f, plrModel.finish()};
+    for (size_t i = 0; i<vec.size();i++) {
+        auto actual = dataRep.GetValue(vec[i]);
+        auto expected = std::upper_bound(vec.begin(),vec.end(),vec[i]);
+        uint64_t res;
+        if (expected != vec.begin()) {
+            res = std::distance(vec.begin(),std::prev(expected)) / 5;
+        } else {
+            res = 0;
+        }
+        if (!(actual.first <= res && actual.second >= res)) {
+            std::cout << "Generated key: " <<vec[i]  << "\tActual: [" << actual.first << ", " << actual.second << "] , Expected: " <<res << std::endl;
+            dataRep.GetValueWithInfo(vec[i]);
+            EXPECT_TRUE(actual.first <= res && actual.second >= res);
+        }
+    }
+//    for (auto i: vec) {
+//        std::cout << i << "\t";
+//    }
+//    std::cout << std::endl;
+//    dataRep.PrintAllDataPoint();
 }
 
 TEST(StrToUint, testNull) {
