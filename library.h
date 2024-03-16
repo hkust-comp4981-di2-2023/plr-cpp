@@ -221,7 +221,7 @@ public:
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<D> pt) {
         if (!wait_for_process.empty()) {
-            auto diff_y = (pt.y - last_pt.y) / (1 + wait_for_process.size());
+//            auto diff_y = (pt.y - last_pt.y) / (1 + wait_for_process.size());
             auto curStep = last_pt.y;
             for (size_t i = 0; i < wait_for_process.size(); i++) {
 //                curStep+=diff_y;
