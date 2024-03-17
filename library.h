@@ -480,8 +480,8 @@ public:
 //        std::cout << "Lower bound: " << lower_bound << std::endl;
 //        std::cout << "Upper bound: " << upper_bound << std::endl;
 //        std::cout << "-------------------" << std::endl;
-//        lower_bound = (lower_bound < 0) ? 0 : lower_bound;
-//        upper_bound = (upper_bound < 0) ? 0 : upper_bound;
+        lower_bound = (lower_bound < 0) ? 0 : lower_bound;
+        upper_bound = (upper_bound < 0) ? 0 : upper_bound;
         return std::pair<N,N>(lower_bound, upper_bound);
     }
 
