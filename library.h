@@ -475,14 +475,14 @@ public:
 //        std::cout << "Current segment used: [" << res.x_start << ", " << res.slope << ", " << res.y << "]" << std::endl;
 //        std::cout << "Next segment used: [" << temp2.x_start << ", " << temp2.slope << ", " << temp2.y << "]" << std::endl;
         auto tar = res.slope * (D) key + res.y;
-        N lower_bound = floor((tar - gamma_));
-        N upper_bound = ceil((tar + gamma_));
+        D lower_bound = floor((tar - gamma_));
+        D upper_bound = ceil((tar + gamma_));
 //        std::cout << "Lower bound: " << lower_bound << std::endl;
 //        std::cout << "Upper bound: " << upper_bound << std::endl;
 //        std::cout << "-------------------" << std::endl;
         lower_bound = (lower_bound < 0) ? 0 : lower_bound;
         upper_bound = (upper_bound < 0) ? 0 : upper_bound;
-        return std::pair<N,N>(lower_bound, upper_bound);
+        return std::pair<N,N>(round(lower_bound), round(upper_bound));
     }
 
     // Debug only: print all data points using std::cout
