@@ -221,23 +221,11 @@ public:
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<D> pt) {
         if (!wait_for_process.empty()) {
-//            auto diff_y = (pt.y - last_pt.y) / (1 + wait_for_process.size());
+            auto diff_y = (pt.y - last_pt.y) / (1 + wait_for_process.size());
             auto curStep = last_pt.y;
             for (size_t i = 0; i < wait_for_process.size(); i++) {
-//                curStep+=diff_y;
+                curStep+=diff_y;
                 auto curPt = Point<D>(wait_for_process[i], curStep);
-////                 further interpolate some points
-//                size_t times = (curPt.x - last_pt.x-1 > 100) ? 100 : curPt.x - last_pt.x-1;
-//                auto diff_y_inner = (curPt.y - last_pt.y) / (1+times);
-//                auto diff_x_inner = (curPt.x - last_pt.x) / (1+times);
-//                auto inner_curStep = last_pt.y;
-//                auto inner_curX = last_pt.x;
-//                for (size_t j = 0;  j < times;j++) {
-//                    inner_curStep += diff_y_inner;
-//                    inner_curX +=diff_x_inner;
-//                    processHelper(Point<D>(inner_curX,inner_curStep));
-//                }
-
                 processHelper(curPt);
                 last_pt = Point<D>(curPt);
             }
@@ -252,6 +240,7 @@ public:
     // REQUIRED: Has not been called finish()
     std::vector<Segment<N, D>> finish() {
         assert(state != GREEDY_PLR_STATE::FINISHED);
+        // If the wait_for_process have some empty pts, put it to the trainer
         if (!wait_for_process.empty()) {
             auto last_key = wait_for_process[wait_for_process.size() - 1];
             wait_for_process.pop_back();
@@ -327,9 +316,13 @@ private:
     }
 
     void process_(Point<D> pt) {
+        if (pt.x <= last_pt.x) {
+            return;
+        }
         if (!(rho_lower.above(pt) && rho_upper.below(pt))) {
-            // Creating a new segment, the overshooting prevention should place here
-//            fillMiddleDataPt_(pt);
+            // Overshooting prevention is in here
+            //fillMiddleDataPt_() will call process() recursively
+            fillMiddleDataPt_(pt);
             auto prev_segment = current_segment();
             s0 = pt;
             state = GREEDY_PLR_STATE::NEED_1_PT;
@@ -346,44 +339,32 @@ private:
         }
     }
 
-    // This function avoids the overshooting issues of predicting data block due to lack of data point
-    // The function will first generate a range with 100 interval,
-    // and see if the range overflow
-    // if yes, recursively call the function
-    // terminating condition has been set in process(pt)
+    // This function is used in process_() to fill the middle data points
+    // If there is an overshooting issue
+    // pt: current training pt, last_pt is the last training pt
     void fillMiddleDataPt_(Point<D> pt) {
-        // Check whether the pt is not exceeding gamma
-        if (current_segment().slope * pt.x + current_segment().y <= pt.y - gamma) {
+        if (pt.x <= last_pt.x) {
             return;
         }
-        // first find the step between pt and last segment start
-        N cur_pt_x = round(pt.x);
-        size_t count = cur_pt_x - current_segment().x_start;
-        // Generate a range based on the count
-        // If the count < 100, the step is 1
-        uint64_t step;
-        if (count < 100) {
-            step = count;
-        } else {
-            step = count / 100;
+        // If not overshoot, return
+        auto segment = current_segment();
+        if (segment.slope * (pt.x-1) + segment.y <= pt.y) {
+            return;
         }
-        auto ra = pyrange<uint64_t>(current_segment().x_start + 1, cur_pt_x, step);
 
-        size_t whole_range_size = 0;
-        auto t{ra};
-        for (auto it = t.begin(); it != t.end(); ++it) {
-            whole_range_size++;
+        size_t base = 100* std::pow(10, std::log(1/gamma)+gamma)*(std::max(1.0,log(pt.x- last_pt.x)));
+        if (base >  pt.x - last_pt.x) {
+            base = (pt.x - last_pt.x >=100) ? 100: 1;
         }
-        // As the new segment starts, the last_pt variable stores the previously successfully processed pt
-        // Use the last pt and the current pt to create a step function for training
-        // The recursive call should take care of the last_pt variable, visualization test required
-
-        auto pt_step = (pt.y - last_pt.y) / whole_range_size;
-        D cur_step = last_pt.y;
-        for (auto it = t.begin(); it != t.end(); ++it) {
-            auto i = *(it);
-            process(Point<D>(i, cur_step));
-            cur_step += pt_step;
+        auto diff_y = (pt.y - last_pt.y) / (base+1);
+        auto diff_x = (pt.x - last_pt.x) / (base+1);
+        auto x_curStep = last_pt.x;
+        auto curStep = last_pt.y;
+        for (size_t i = 1; i < base; i++) {
+            curStep += diff_y;
+            x_curStep+=diff_x;
+            processHelper(Point<D>(x_curStep, curStep));
+            last_pt = Point<D>(x_curStep, curStep);
         }
     }
 };
@@ -457,6 +438,9 @@ public:
 
     std::pair<N, N> GetValue(N key) {
 //        std::cout << "Getting value of " << key << std::endl;
+//        std::cout << "-------------------" << std::endl;
+
+//        std::cout << "Getting value of " << key << std::endl;
 //        assert(key >= segments_[0].x_start);
         if (segments_.empty()) {
             return std::pair<N,N>(0,0);
@@ -473,7 +457,9 @@ public:
             res = *it;
 //            auto temp1 = *(++it);
 //            assert(key < temp1.x_start);
-        } else {
+        } else if (it == segments_.end()) {
+            res = *(--it);
+        }else {
             res = *it;
 //            auto temp1 = *(--it);
 //            auto temp2 = *(++ ++it);
@@ -483,10 +469,17 @@ public:
             }
 //            assert(key >= res.x_start && key < temp2.x_start);
         }
-
+//        auto temp1 = *(--it);
+//        auto temp2 = *(++++it);
+//        std::cout << "Last segment used: [" << temp1.x_start << ", " << temp1.slope << ", " << temp1.y << "]" << std::endl;
+//        std::cout << "Current segment used: [" << res.x_start << ", " << res.slope << ", " << res.y << "]" << std::endl;
+//        std::cout << "Next segment used: [" << temp2.x_start << ", " << temp2.slope << ", " << temp2.y << "]" << std::endl;
         auto tar = res.slope * (D) key + res.y;
         N lower_bound = floor((tar - gamma_));
         N upper_bound = ceil((tar + gamma_));
+//        std::cout << "Lower bound: " << lower_bound << std::endl;
+//        std::cout << "Upper bound: " << upper_bound << std::endl;
+//        std::cout << "-------------------" << std::endl;
 //        lower_bound = (lower_bound < 0) ? 0 : lower_bound;
 //        upper_bound = (upper_bound < 0) ? 0 : upper_bound;
         return std::pair<N,N>(lower_bound, upper_bound);

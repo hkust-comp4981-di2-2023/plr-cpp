@@ -193,22 +193,12 @@ TEST(PLRDataRepTest, testReadWrite) {
     for (size_t i = 0; i<vec.size();i++) {
         auto actual = dataRep.GetValue(vec[i]);
         auto expected = std::upper_bound(vec.begin(),vec.end(),vec[i]);
-        uint64_t res;
-        if (expected != vec.begin()) {
-            res = std::distance(vec.begin(),std::prev(expected)) / 5;
-        } else {
-            res = 0;
-        }
+        uint64_t res = i/5;
         if (!(actual.first <= res && actual.second >= res)) {
             std::cout << "Generated key: " <<vec[i]  << "\tActual: [" << actual.first << ", " << actual.second << "] , Expected: " <<res << std::endl;
             EXPECT_TRUE(actual.first <= res && actual.second >= res);
         }
     }
-//    for (auto i: vec) {
-//        std::cout << i << "\t";
-//    }
-//    std::cout << std::endl;
-//    dataRep.PrintAllDataPoint();
 }
 
 TEST(StrToUint, testNull) {
