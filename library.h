@@ -9,6 +9,7 @@
 #include <utility>
 #include <functional>
 #include <cmath>
+#include <iomanip>
 
 #ifndef PLR_LIBRARY_H
 #define PLR_LIBRARY_H
@@ -166,7 +167,7 @@ template<typename N, typename D>
 struct __attribute__((packed)) Segment {
     static Segment<N, D> NO_VALID_SEGMENT;
     static_assert(std::is_floating_point<D>(), "Floating point should be placed in second placement,");
-    static_assert(std::is_integral<N>(), "Integer should be placed in first placement.");
+    static_assert(std::is_arithmetic<N>(), "Integer should be placed in first placement.");
 
     N x_start; // The intersection pt x (since we can translate this pt exactly)
     D slope;
@@ -201,7 +202,7 @@ enum GREEDY_PLR_STATE {
 template<typename N, typename D>
 class GreedyPLR {
     static_assert(std::is_floating_point<D>(), "Floating point should be placed in second placement,");
-    static_assert(std::is_integral<N>(), "Integer should be placed in first placement.");
+    static_assert(std::is_arithmetic<N>(), "Integer should be placed in first placement.");
 public:
     GreedyPLR(D _gamma) : state(GREEDY_PLR_STATE::NEED_2_PT), gamma(_gamma) {}
 
@@ -294,9 +295,9 @@ private:
     void processHelper(Point<D> pt) {
         assert(state != GREEDY_PLR_STATE::FINISHED);
         // if the current feeding data point is < current segment x_start, return
-        if (pt.x <= last_pt.x) {
-            return;
-        }
+//        if (pt.x <= last_pt.x) {
+//            return;
+//        }
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
                 s0 = pt;
@@ -322,7 +323,7 @@ private:
         if (!(rho_lower.above(pt) && rho_upper.below(pt))) {
             // Overshooting prevention is in here
             //fillMiddleDataPt_() will call process() recursively
-            fillMiddleDataPt_(pt);
+//            fillMiddleDataPt_(pt);
             auto prev_segment = current_segment();
             s0 = pt;
             state = GREEDY_PLR_STATE::NEED_1_PT;
@@ -494,7 +495,7 @@ public:
         std::cout << "----------------------------" << std::endl;
         std::cout << "Element Data: " << std::endl;
         for (auto i: segments_) {
-            std::cout << i.x_start << ", " << i.slope << ", " << i.y << std::endl;
+            std::cout << std::setprecision(10)  << i.x_start << ", " << i.slope << ", " << i.y << std::endl;
         }
         std::cout << "----------------------------" << std::endl;
     }
