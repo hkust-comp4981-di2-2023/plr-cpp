@@ -221,6 +221,9 @@ public:
     // 2. Process the parameter point
     // REQUIRED: The PLR Model is not at the finishing state
     void process(Point<D> pt) {
+        if (pt.x <= last_pt.x) {
+            return;
+        }
         if (!wait_for_process.empty()) {
             auto diff_y = (pt.y - last_pt.y) / (1 + wait_for_process.size());
             auto curStep = last_pt.y;
@@ -295,9 +298,9 @@ private:
     void processHelper(Point<D> pt) {
         assert(state != GREEDY_PLR_STATE::FINISHED);
         // if the current feeding data point is < current segment x_start, return
-//        if (pt.x <= last_pt.x) {
-//            return;
-//        }
+        if (pt.x <= last_pt.x) {
+            return;
+        }
         switch (state) {
             case GREEDY_PLR_STATE::NEED_2_PT:
                 s0 = pt;
